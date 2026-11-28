@@ -1,0 +1,147 @@
+name: Deploy (发布单文件版)
+
+# CD 挂在 CI 后面：CI 绿了才发布，避免半成品上线。
+#
+# 产物：dist/ 里的两份单文件 HTML —— 模型由代码生成、音频 base64 内联，自包含，
+#       双击即玩，不需要服务器也不需要联网。
+#
+# 两条发布通道，都从这里出：
+#   1. GitHub Release（仅对有仓库访问权的人可见）—— assets/来源.md 里 9 个录音素材标注
+#      「权利未核实」，源码仓因此保持私有，Release 附件也只对有权限的人开放。
+#   2. 公开试玩仓 flying-dragon-ai/huorengan-2079-play 的 GitHub Pages（2026-11-20 起就在
+#      线上，见该仓 README）—— 由 scripts/sync-play.mjs 推送 index.html /
+#      earth-village-viewer.html / full/ 开发树。这条通道是公开的，素材权利状态同上游。
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '发布标签（留空则用滚动标签 latest）'
+        required: false
+        default: ''
+        type: string
+
+concurrency:
+  group: deploy-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write # 建 tag / 建 release / 传附件
+
+jobs:
+  release:
+    name: 构建并发布
+    # 挂在 CI 后面就必须是「CI 绿了才发」：workflow_run 对失败的 CI 也会触发
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout（含 LFS 资产）
+        uses: actions/checkout@v4
+        with:
+          # 必须带 LFS：单文件版把 assets/audio/*.mp3 以 base64 内联，
+          # 不拉 LFS 的话拿到的是指针文本，发出去是个没声音的版本（1.37MB vs 3.8MB）
+          lfs: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build 双入口单文件
+        run: |
+          npm run build
+          npm run build:viewer
+          ls -la dist/
+          # GitHub 会把附件名里的非 ASCII 字符剥掉（活人感2079.html → 2079.html，
+          # 地球村-自由浏览.html → -.html），所以先拷成 ASCII 安全的名字再传
+          cp "dist/活人感2079.html"      dist/huorengan-2079.html
+          cp "dist/地球村-自由浏览.html" dist/earth-village-viewer.html
+          ls -la dist/
+
+
+      - name: 上传构建产物（给 sync-play 用，避免重复构建）
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-html
+          path: |
+            dist/活人感2079.html
+            dist/地球村-自由浏览.html
+          if-no-files-found: error
+          retention-days: 3
+      - name: 发布到 GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.inputs.tag || 'latest' }}
+        run: |
+          set -euo pipefail
+          NOTES=$(mktemp)
+          {
+            echo "《活人感 2079 重制版》单文件版 —— 下载即玩，不用装任何东西。"
+            echo
+            echo "- \`huorengan-2079.html\`：标准版。模型由代码生成，音频已内联，双击即玩。"
+            echo "- \`earth-village-viewer.html\`：观景版，8 个街区自由逛。"
+            echo
+            echo "构建自 commit \`${GITHUB_SHA}\`（CI 全绿后才发布）。"
+            echo "素材授权尚未逐项核实，仓库保持私有；本发布物仅对有仓库访问权的人开放。"
+            echo "公开试玩入口（GitHub Pages，素材权利状态同上）：https://flying-dragon-ai.github.io/huorengan-2079-play/"
+          } > "$NOTES"
+          # 整体重建：旧附件名被剥过中文、也可能有陈旧文件，重建最干净
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release delete "$TAG" --yes --cleanup-tag --repo "$GITHUB_REPOSITORY"
+          fi
+          gh release create "$TAG" \
+            dist/huorengan-2079.html dist/earth-village-viewer.html \
+            --notes-file "$NOTES" \
+            --title "活人感 2079 · $TAG" \
+            --repo "$GITHUB_REPOSITORY"
+          echo "发布地址："
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json url --jq .url
+          echo "附件："
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets \
+            --jq '.assets[] | "  " + .name + "  " + (.size|tostring) + " bytes  " + .url'
+
+
+  sync-play:
+    name: 同步到公开试玩仓（Pages）
+    needs: release
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout（含 LFS 资产）
+        uses: actions/checkout@v4
+        with:
+          # full/ 是未打包的开发树，浏览器真去请求 assets/models/*.glb 与 assets/audio/*，
+          # 不拉 LFS 的话推上去的是一堆指针文本，页面加载即炸
+          lfs: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 取回构建产物（复用 release 那一步的构建，不重复打包）
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-html
+          path: dist
+
+      - name: 推送 index.html / earth-village-viewer.html / full/
+        env:
+          PLAY_REPO_TOKEN: ${{ secrets.PLAY_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          # 没配令牌就跳过而不是报红：试玩仓同步是附加通道，不该拦住 Release
+          if [ -z "${PLAY_REPO_TOKEN}" ]; then
+            echo "::warning::未配置 PLAY_REPO_TOKEN，跳过公开试玩仓同步"
+            exit 0
+          fi
+          node scripts/sync-play.mjs

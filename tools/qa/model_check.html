@@ -1,0 +1,8 @@
+<!doctype html><meta charset="utf-8"><style>body{margin:0;background:#203040}canvas{width:100vw;height:100vh}</style><canvas id="c"></canvas><script type="importmap">{"imports":{"three":"../../vendor/three/three.module.js","three/addons/":"../../vendor/three/addons/"}}</script><script type="module">
+import * as THREE from 'three';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+const r=new THREE.WebGLRenderer({canvas:document.querySelector('#c'),antialias:false});r.setSize(900,700);r.setPixelRatio(1);r.outputColorSpace=THREE.SRGBColorSpace;
+const s=new THREE.Scene();s.background=new THREE.Color(0x203040);s.add(new THREE.HemisphereLight(0xffffff,0x334455,3));const cam=new THREE.PerspectiveCamera(45,900/700,.01,100);cam.position.set(3,2,4);
+const o=new OrbitControls(cam,r.domElement);o.target.set(0,.75,0);o.update();
+new GLTFLoader().load('../../assets/models/naiwa_animated.glb',g=>{s.add(g.scene);let bones=0,verts=0,morphs=0;g.scene.traverse(x=>{if(x.isBone)bones++;if(x.isMesh){verts+=x.geometry.attributes.position.count;morphs+=x.morphTargetInfluences?.length||0}});window.model=g.scene;window.stats={bones,verts,morphs,animations:g.animations.map(a=>a.name),box:new THREE.Box3().setFromObject(g.scene).getSize(new THREE.Vector3()).toArray()};window.mixer=new THREE.AnimationMixer(g.scene);for(const a of g.animations)window.mixer.clipAction(a).play();document.title='loaded';window.ready=true},undefined,e=>{console.error(e);window.err=String(e)});
+function loop(){requestAnimationFrame(loop);if(window.mixer)window.mixer.update(.016);o.update();r.render(s,cam)}loop();
+</script>

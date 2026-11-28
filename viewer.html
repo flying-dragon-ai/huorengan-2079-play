@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="data:,">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>活人感 2079 · 自由浏览</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #05080f; color: #eef4ff; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; }
+  #c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .layer { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, #0d1a2a, #05080f); transition: opacity 0.6s; }
+  .layer.off { opacity: 0; pointer-events: none; }
+  #load-txt { font-size: 2.4vh; margin-bottom: 2vh; letter-spacing: 0.1em; }
+  #load-bar { width: min(320px, 70vw); height: 6px; accent-color: #7ef6ff; }
+  #load-tip { margin-top: 2vh; font-size: 1.6vh; color: #8fa8c0; }
+  #hud { position: fixed; z-index: 10; top: 16px; left: 16px; right: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; opacity: 0; transition: opacity 0.6s; pointer-events: none; }
+  #hud > * { pointer-events: auto; }
+  #hud .title { font-size: 18px; font-weight: 800; letter-spacing: 0.05em; text-shadow: 0 2px 8px #000; margin-right: 6px; }
+  #hud select, #hud button {
+    background: rgba(12, 22, 34, 0.8); color: #dff0ff; border: 1px solid #3a5a74;
+    border-radius: 8px; padding: 7px 12px; font: inherit; font-size: 14px; cursor: pointer;
+    backdrop-filter: blur(6px);
+  }
+  #hud select:hover, #hud button:hover { border-color: #7ef6ff; }
+  #fps { margin-left: auto; font-size: 13px; color: #9fe6c0; text-shadow: 0 1px 4px #000; }
+  #hint { position: fixed; z-index: 10; bottom: 14px; left: 50%; transform: translateX(-50%); font-size: 13px; color: #cfd8e0; text-shadow: 0 1px 4px #000; background: rgba(8, 14, 22, 0.55); padding: 8px 16px; border-radius: 20px; pointer-events: none; white-space: nowrap; }
+  #hint b { color: #7ef6ff; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">
+  <span class="title">活人感 2079 · 自由浏览</span>
+  <select id="view-select" title="切换视角"></select>
+  <button id="time-btn">黄昏</button>
+  <button id="quality-btn">高画质</button>
+  <span id="fps"></span>
+</div>
+<div id="hint">鼠标<b>左键拖动</b>旋转 · <b>滚轮</b>缩放 · <b>右键拖动</b>平移 · 左上角切换地点和时间</div>
+<div id="loading" class="layer">
+  <span id="load-txt">启动中…</span>
+  <progress id="load-bar" max="1" value="0"></progress>
+  <div id="load-tip">所有模型与贴图均由代码生成 · 无需联网</div>
+</div>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.js", "three/addons/": "./vendor/three/addons/" } }
+</script>
+<script type="module" src="./src/viewer/main.js"></script>
+</body>
+</html>

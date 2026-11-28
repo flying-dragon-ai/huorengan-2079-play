@@ -1,0 +1,13 @@
+node_modules/
+vendor/
+assets/
+dist/
+coverage/
+tests/e2e/shots/
+tools/tripo/out/
+tools/assets/blender/
+tripo-out/
+.cache/
+.layertest/
+package-lock.json
+*.min.js

@@ -1,0 +1,31 @@
+{
+  "name": "huorengan-2079",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "《活人感 2079 重制版》—— 原生 JS ESM + vendored Three.js r187 的网页 3D 游戏",
+  "license": "SEE LICENSE IN LICENSE",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "serve": "node scripts/serve.mjs",
+    "build": "node scripts/build-singlefile.mjs",
+    "build:viewer": "node scripts/build-viewer.mjs",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "node tools/qa/check_full.mjs",
+    "check": "npm run lint && npm run test && npm run build && npm run build:viewer"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "eslint": "^10.15.0",
+    "prettier": "^3.10.1",
+    "vitest": "^5.1.1"
+  }
+}

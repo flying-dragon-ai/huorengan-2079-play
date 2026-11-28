@@ -1,0 +1,33 @@
+# 本分支由 scripts/sync-play.mjs 自动镜像，不启用 Git LFS：二进制以实体字节存放。
+# ============================================================
+# 默认：文本按 LF 归一化，二进制不猜测
+# ============================================================
+* text=auto eol=lf
+
+# ============================================================
+# Git LFS：二进制资产
+# ============================================================
+
+# ============================================================
+# 行尾强制（跨平台协作）
+# ============================================================
+*.bat     text eol=crlf
+*.cmd     text eol=crlf
+*.ps1     text eol=crlf
+*.sh      text eol=lf
+*.command text eol=lf
+*.mjs     text eol=lf
+*.js      text eol=lf
+*.json    text eol=lf
+*.md      text eol=lf
+*.html    text eol=lf
+*.css     text eol=lf
+*.yml     text eol=lf
+*.yaml    text eol=lf
+
+# ============================================================
+# 语言统计（GitHub 语言条）
+# ============================================================
+vendor/**                    linguist-vendored
+package-lock.json            linguist-generated
+tools/lux3d/package-lock.json linguist-generated

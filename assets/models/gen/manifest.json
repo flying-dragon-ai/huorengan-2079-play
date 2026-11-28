@@ -1,0 +1,110 @@
+[
+  {
+    "id": "paris_duelist",
+    "file": "paris_duelist.glb",
+    "height": 1.8,
+    "zh": "巴黎法棍决斗者",
+    "en": "Paris baguette duelist"
+  },
+  {
+    "id": "paris_baguette",
+    "file": "paris_baguette.glb",
+    "height": 1.1,
+    "zh": "半根法棍",
+    "en": "Broken baguette"
+  },
+  {
+    "id": "pyramid_anubis",
+    "file": "pyramid_anubis.glb",
+    "height": 2.1,
+    "zh": "安全帽阿努比斯",
+    "en": "Anubis construction foreman"
+  },
+  {
+    "id": "pyramid_camel",
+    "file": "pyramid_camel.glb",
+    "height": 2.4,
+    "zh": "工地骆驼",
+    "en": "Construction camel"
+  },
+  {
+    "id": "iceland_penguin",
+    "file": "iceland_penguin.glb",
+    "height": 1.5,
+    "zh": "温泉打卡企鹅",
+    "en": "Iceland spa penguin"
+  },
+  {
+    "id": "iceland_igloo",
+    "file": "iceland_igloo.glb",
+    "height": 6.5,
+    "zh": "冰屋",
+    "en": "Iceland igloo"
+  },
+  {
+    "id": "hometown_teacher",
+    "file": "hometown_teacher.glb",
+    "height": 1.8,
+    "zh": "班主任",
+    "en": "Hometown teacher"
+  },
+  {
+    "id": "hometown_granny",
+    "file": "hometown_granny.glb",
+    "height": 1.7,
+    "zh": "菜市场阿姨",
+    "en": "Market auntie"
+  },
+  {
+    "id": "hometown_bus",
+    "file": "hometown_bus.glb",
+    "height": 3.4,
+    "zh": "县城老公交",
+    "en": "County bus"
+  },
+  {
+    "id": "hall_fish",
+    "file": "hall_fish.glb",
+    "height": 2.5,
+    "zh": "全息大肥鱼客服",
+    "en": "Holographic chubby fish assistant"
+  },
+  {
+    "id": "bigapple_statue",
+    "file": "bigapple_statue.glb",
+    "height": 13,
+    "yaw": -1.5708,
+    "zh": "自由奶蛙像",
+    "en": "Liberty frog statue with coffee cup"
+  },
+  {
+    "id": "yellow_taxi",
+    "file": "yellow_taxi.glb",
+    "height": 1.7,
+    "yaw": -1.5708,
+    "zh": "黄色出租车",
+    "en": "NYC yellow taxi"
+  },
+  {
+    "id": "lifeguard_tower",
+    "file": "lifeguard_tower.glb",
+    "height": 6.5,
+    "zh": "救生塔",
+    "en": "Lifeguard tower"
+  },
+  {
+    "id": "flamingo_float",
+    "file": "flamingo_float.glb",
+    "height": 1.6,
+    "zh": "火烈鸟泳圈",
+    "en": "Flamingo pool float"
+  },
+  {
+    "id": "tokyo_lucky_cat",
+    "file": "tokyo_lucky_cat.glb",
+    "height": 2.2,
+    "yaw": -1.5708,
+    "zh": "招财猫",
+    "en": "Maneki-neko lucky cat"
+  }
+]

@@ -1,0 +1,24 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>模型预览</title>
+<script type="importmap">{ "imports": { "three": "../../vendor/three/three.module.js", "three/addons/": "../../vendor/three/addons/" } }</script>
+<style>body{margin:0;background:#222}</style></head>
+<body><script type="module">
+// 检查 Lux3D 模型的朝向：镜头在 +Z，正面朝 +Z 的模型会看着镜头
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { preload, getModel, loaded } from '../../src/actors/models.js';
+const r = new THREE.WebGLRenderer({ antialias: true }); r.setSize(innerWidth, innerHeight); document.body.appendChild(r.domElement);
+r.toneMapping = THREE.ACESFilmicToneMapping; r.outputColorSpace = THREE.SRGBColorSpace;
+const s = new THREE.Scene(); s.background = new THREE.Color(0x30343c);
+s.environment = new THREE.PMREMGenerator(r).fromScene(new RoomEnvironment()).texture;
+s.add(new THREE.DirectionalLight(0xffffff, 2).translateZ(5).translateY(5));
+const names = ['naiwa', 'kangaroo', 'niulai', 'ebike'];
+await preload(names);
+const view = new URLSearchParams(location.search).get('side') ? 'side' : 'front';
+names.forEach((n, i) => { const m = getModel(n); m.position.x = (i - 1.5) * 2.4; s.add(m); });
+const cam = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 0.1, 100);
+if (view === 'side') cam.position.set(14, 1.5, 0); else cam.position.set(0, 1.5, 14);
+cam.lookAt(0, 0.8, 0);
+r.setAnimationLoop(() => r.render(s, cam));
+document.title = 'ready ' + JSON.stringify(loaded);
+</script></body></html>

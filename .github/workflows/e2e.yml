@@ -1,0 +1,75 @@
+name: E2E (机器人验收)
+
+# 手动触发：需要 Chrome + LFS 资产，跑得久，不进 push 门禁。
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: '要跑的验收套件'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - entries
+          - districts
+          - all
+
+jobs:
+  e2e:
+    name: 机器人验收
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout (含 LFS 资产)
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Setup Chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+          # 装 Chrome 的 apt 依赖（共享库）。缺了 Chrome 会秒退、DevTools 端口起不来
+          install-dependencies: true
+
+      - name: 起静态服务
+        run: |
+          node scripts/serve.mjs &
+          for i in $(seq 1 40); do
+            curl -sf -o /dev/null http://127.0.0.1:2079/index.html && break
+            sleep 0.5
+          done
+
+      - name: check_full
+        if: inputs.suite == 'full' || inputs.suite == 'all'
+        run: node tools/qa/check_full.mjs
+
+      - name: check_entries
+        if: inputs.suite == 'entries' || inputs.suite == 'all'
+        run: node tools/qa/check_entries.mjs
+
+      - name: check_district × 8
+        if: inputs.suite == 'districts' || inputs.suite == 'all'
+        run: |
+          for d in shanghai tokyo bigapple beach paris pyramid iceland hometown; do
+            echo "=== $d ==="
+            node tools/qa/check_district.mjs "$d"
+          done
+
+      - name: 上传截图与日志
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-shots
+          path: tests/e2e/shots/
+          retention-days: 14
