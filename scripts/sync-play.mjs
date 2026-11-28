@@ -176,6 +176,9 @@ ${files.map((f) => `- \`${f.to}\` —— ${f.label}（约 ${human(f.bytes)}）`)
   - 与两份单文件同一次构建，差在模型走 \`assets/models/*.glb\` 而不是代码生成的替身
   - 直接在浏览器打开需要经 HTTP 提供（模块 + GLB 请求），Pages 上开箱可用
 
+源码：\`source-code\` 分支 —— 整棵源码快照（src / scripts / tools / tests / docs / vendor / assets），
+二进制以实体字节存放、不走 LFS，可以直接浏览或 clone 下来跑。
+
 构建溯源：源码仓私有仓库 \`flying-dragon-ai/huorengan-2079\` 的 \`${SHA}\`，同步于 ${STAMP}。
 由 \`scripts/sync-play.mjs\` 在源码仓 CI 发布流程里自动生成，**不要手改本仓**——下次发布会整份覆盖。
 
