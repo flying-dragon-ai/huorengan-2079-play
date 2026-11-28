@@ -215,7 +215,9 @@ function trackedFiles() {
 async function mirrorSource(name, email) {
   const has = tryGit(['ls-remote', '--heads', 'origin', MIRROR], { cwd: WORK, env }).includes(MIRROR);
   if (has) {
-    tryGit(['fetch', '--depth', '1', 'origin', MIRROR], { cwd: WORK, env });
+    // 显式 refspec：命令行只给源名时 git 只写 FETCH_HEAD，不建 origin/<分支>，
+    // 浅克隆下再 checkout origin/source-code 就会报 "is not a commit"（CI 实测）
+    tryGit(['fetch', '--depth', '1', 'origin', `${MIRROR}:refs/remotes/origin/${MIRROR}`], { cwd: WORK, env });
     tryGit(['checkout', '-q', '-f', '-B', MIRROR, `origin/${MIRROR}`], { cwd: WORK, env });
   } else {
     console.log(`· 新建孤立分支 ${MIRROR}`);
