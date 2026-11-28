@@ -4,8 +4,8 @@ import * as THREE from 'three';
 import { questRing, inRect, flat } from '../world/districts/kit.js';
 import { bubble } from '../gfx/fx.js';
 
-// 主线在跑计时任务（取餐、送咖啡）时，不让接街区任务
-const MAIN_BUSY = ['pickup', 'deliver', 'order'];
+// 主线在跑计时任务或重启循环时，支线光圈退居幕后（自由闯荡时全部可接）
+const MAIN_BUSY = ['pickup', 'deliver', 'order', 'loop'];
 
 export class Districts {
   constructor(game) {
@@ -60,14 +60,14 @@ export class Districts {
     let hint = '';
     for (const d of this.list) {
       if (!d.ring) continue;
-      const show = !this.done.has(d.id) && !this.active;
+      const show = ok && !this.done.has(d.id) && !this.active;
       d.ring.g.visible = show;
       if (!show) continue;
       d.ring.spin(dt, t);
       const dq = flat(p.pos, d.quest.at);
       d.ring.tag.visible = dq > 9; // 走近了就不挡镜头
       if (dq < 4.5) {
-        hint = ok ? `按 <b>E</b> 接任务：${d.quest.title}（${d.quest.kind}）` : g.phase === 'pickup' || g.phase === 'deliver' ? '先把咖啡送了再来打工（外卖超时要扣钱）' : '';
+        hint = `按 <b>E</b> 接街区任务：${d.quest.title}（${d.quest.kind}）`;
       }
     }
     if (this.active) {

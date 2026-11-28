@@ -134,23 +134,26 @@ export class BigApple {
     board(I, ['自由奶蛙像', 'LIBERTY FROG · 给我你的咖啡钱'], 5, 1.4, x, 1.4, z - 3.56, Math.PI, { bg: '#2a3a2a', fg: '#e8ffe0' });
     const gen = genModel(['bigapple_statue', 'statue_of_liberty_frog', 'liberty_frog', '自由奶蛙像'], 13);
     const g = new THREE.Group(); g.position.set(x, 4, z); I.add(g); this.statue = g;
-    if (gen) { gen.rotation.y = Math.PI; g.add(gen); return; }
-    const pat = mat(0x6fb8a0, { roughness: 0.55, metalness: 0.25 });
-    const robe = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 2.8, 7, 18), pat); robe.position.y = 3.5; g.add(robe);
-    const body = new THREE.Mesh(new THREE.SphereGeometry(2.2, 20, 16), pat); body.scale.set(1, 0.8, 0.9); body.position.y = 7.4; g.add(body);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(1.9, 24, 18), pat); head.scale.set(1.15, 0.85, 1); head.position.y = 9.6; g.add(head);
-    for (const s of [-1, 1]) {
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.62, 16, 12), mat(0xf4f4ea)); eye.position.set(s * 0.95, 10.8, -0.9); g.add(eye);
-      const pu = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 8), mat(0x111111)); pu.position.set(s * 0.95, 10.85, -1.42); g.add(pu);
+    if (gen) {
+      gen.rotation.y = Math.PI; g.add(gen);
+    } else {
+      const pat = mat(0x6fb8a0, { roughness: 0.55, metalness: 0.25 });
+      const robe = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 2.8, 7, 18), pat); robe.position.y = 3.5; g.add(robe);
+      const body = new THREE.Mesh(new THREE.SphereGeometry(2.2, 20, 16), pat); body.scale.set(1, 0.8, 0.9); body.position.y = 7.4; g.add(body);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(1.9, 24, 18), pat); head.scale.set(1.15, 0.85, 1); head.position.y = 9.6; g.add(head);
+      for (const s of [-1, 1]) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.62, 16, 12), mat(0xf4f4ea)); eye.position.set(s * 0.95, 10.8, -0.9); g.add(eye);
+        const pu = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 8), mat(0x111111)); pu.position.set(s * 0.95, 10.85, -1.42); g.add(pu);
+      }
+      for (let i = 0; i < 7; i++) { const a = -Math.PI / 2 + (i - 3) * 0.32; const sp = new THREE.Mesh(new THREE.ConeGeometry(0.18, 1.6, 6), pat); sp.position.set(Math.cos(a) * 1.5, 11.5, Math.sin(a) * 1.0 + 0.2); sp.rotation.set(Math.sin(a) * 0.6, 0, -Math.cos(a) * 0.6); g.add(sp); }
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 4.2, 10), pat); arm.position.set(2.1, 10.2, 0); arm.rotation.z = -0.3; g.add(arm);
+      const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.42, 1.2, 14), mat(0xf6f2ea)); cup.position.set(2.75, 12.6, 0); g.add(cup);
+      const lid = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.18, 14), mat(0x5a3a22)); lid.position.set(2.75, 13.25, 0); g.add(lid);
+      const flame = new THREE.Mesh(new THREE.ConeGeometry(0.45, 1.3, 10), I.neonMat(new THREE.Color(3, 1.8, 0.5))); flame.position.set(2.75, 14.0, 0); g.add(flame); this.flame = flame;
+      const tab = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.7, 0.25), pat); tab.position.set(-1.8, 7.2, -1.2); tab.rotation.z = 0.3; g.add(tab);
+      g.rotation.y = Math.PI; // 正面朝北边的大屏
+      g.traverse((m) => { if (m.isMesh) m.castShadow = true; });
     }
-    for (let i = 0; i < 7; i++) { const a = -Math.PI / 2 + (i - 3) * 0.32; const sp = new THREE.Mesh(new THREE.ConeGeometry(0.18, 1.6, 6), pat); sp.position.set(Math.cos(a) * 1.5, 11.5, Math.sin(a) * 1.0 + 0.2); sp.rotation.set(Math.sin(a) * 0.6, 0, -Math.cos(a) * 0.6); g.add(sp); }
-    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 4.2, 10), pat); arm.position.set(2.1, 10.2, 0); arm.rotation.z = -0.3; g.add(arm);
-    const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.42, 1.2, 14), mat(0xf6f2ea)); cup.position.set(2.75, 12.6, 0); g.add(cup);
-    const lid = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.18, 14), mat(0x5a3a22)); lid.position.set(2.75, 13.25, 0); g.add(lid);
-    const flame = new THREE.Mesh(new THREE.ConeGeometry(0.45, 1.3, 10), I.neonMat(new THREE.Color(3, 1.8, 0.5))); flame.position.set(2.75, 14.0, 0); g.add(flame); this.flame = flame;
-    const tab = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.7, 0.25), pat); tab.position.set(-1.8, 7.2, -1.2); tab.rotation.z = 0.3; g.add(tab);
-    g.rotation.y = Math.PI; // 正面朝北边的大屏
-    g.traverse((m) => { if (m.isMesh) m.castShadow = true; });
     this.gags.add({ id: 'statue', x, z, r: 14, cool: 40, fire: (gm) => {
       gm.districts.bubble(this.statue, '给我你的疲惫、你的贫穷……和八十块咖啡钱', 4, 15.5);
       gm.audio.say('给我你的疲惫，你的贫穷，和八十块咖啡钱。', { pitch: 0.7, rate: 1 });
@@ -207,12 +210,14 @@ export class BigApple {
   }
   ride(g) {
     g.audio.whoosh(); g.flash = 1;
-    g.ui.popup('<h3>🚇 本次列车终点站：铁岭</h3><p>途经：东北、东北、东北</p><p>请站稳扶好，下车请带好您的行李和乡愁</p>', '', 2.4);
-    g.tl.at(0.9, () => {
+    g.reboot?.discover('subwayFound');
+    g.anchors?.refreshUI();
+    g.ui.popup('<h3>🚇 捷径发现：铁岭线直达！</h3><p>已写入跨轮次「记忆笔记本」</p><p>下一秒落到老家县一中门口！</p>', '', 2.2);
+    g.tl.at(0.75, () => {
       g.districts.teleport(-100, 53, 0);
       g.flash = 0.8; g.ui.banner('欢迎来到老家县城', '铁岭门楼 · 县一中 · 班主任已就位');
       g.audio.say('终点站，铁岭，到了。', { pitch: 0.9 });
-      g.ui.burst(['真到铁岭了', '纽约地铁直达铁岭', '这就回老家了？', '大城市待不下去了'], 7); g.laugh += 8;
+      g.ui.burst(['地铁秒传老家！', '绝佳捷径记住了', '大城市待不下去了'], 5); g.laugh += 8;
     });
   }
   testGag(g) { this.ride(g); }
@@ -254,7 +259,11 @@ export class BigApple {
 
   animate(dt, t) {
     if (this.flame) this.flame.scale.set(1 + Math.sin(t * 13) * 0.1, 1 + Math.sin(t * 9) * 0.15, 1);
-    if ((this.screenT -= dt) <= 0) { this.screenT = 0.15; this.drawBig(t); }
+    if ((this.screenT -= dt) <= 0) {
+      this.screenT = 0.35;
+      const pp = this.island.playerPos;
+      if (!pp || Math.hypot(pp.x - C[0], pp.z - C[1]) < 120) this.drawBig(t);
+    }
   }
 
   update(g, dt, inside) {

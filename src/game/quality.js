@@ -15,12 +15,11 @@ export function goGray(game) {
   const g = game.pipe.g; g.uLow.value = 1; g.uReveal.value = 0;
   game.pipe.bloom.strength = 0;
   game.ui.setQuality('画质：360P 省算力模式', true);
-  game.line(LINES.splat[0], 4.5);
-  game.ui.objective('骑上小电驴（找金色光柱，靠近按 E）');
-  // 已经骑上了就不再催（那时 phase 已变成 order）
-  game.tl.at(5, () => { if (game.phase) return; game.line(LINES.splat[1], 3.5); game.phase = 'getbike'; });
-  game.ui.burst(['摔成饼了哈哈哈', '360P 是认真的吗', '我的眼睛', '活人感 3%'], 6);
-  game.pipe.shake = 1.2;
+  game.line(LINES.splat[0], 4.0);
+  game.ui.objective('小电驴就在前面！靠近按 E 上车启动第 1 世');
+  game.tl.at(3.5, () => { if (game.phase) return; game.phase = 'getbike'; });
+  game.ui.burst(['摔成饼了哈哈哈', '小电驴就在旁边！', '快上车！'], 4);
+  game.pipe.shake = 1.0;
 }
 
 /**
@@ -30,10 +29,9 @@ export function goGray(game) {
  */
 export function upgrade(game) {
   game.upT = 0.001; game.audio.upgrade();
-  game.meter = Math.max(game.meter, 20); game.ui.setMeter(game.meter);
+  game.ui.setHumanity?.(game.reboot);
   game.ui.setQuality('画质：全特效');
-  game.line(LINES.upgrade, 4);
-  game.ui.burst(['卧槽画质', '这是同一个游戏？', '3A 大作', '活过来了'], 6);
+  game.ui.burst(['画质回来了！', '150 秒倒计时启动！', '冲冲冲！'], 5);
 }
 
 /**

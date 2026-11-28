@@ -93,8 +93,8 @@ export class Hometown {
     if (this.rideT > 0) return;
     this.rideT = 11; const p = g.player;
     this.teacher.root.visible = false; if (this.teacherModel) this.teacherModel.visible = false;
-    this.backseat = genModel(['hometown_teacher'], 1.65) || this.teacher.root.clone(true);
-    this.backseat.visible = true; this.backseat.position.set(0, p.mode === 'bike' ? 1.1 : 0, -.65); p.root.add(this.backseat);
+    this.backseat = genModel(['hometown_teacher'], 1.35) || this.teacher.root.clone(true);
+    this.backseat.visible = true; this.backseat.position.set(0, p.mode === 'bike' ? 0.38 : 0, -0.95); p.root.add(this.backseat);
     g.ui.banner('班主任坐上了你的电驴', '落霞与孤鹜齐飞，下一句？'); g.audio.say('落霞与孤鹜齐飞，下一句？', { pitch: .9 });
     g.ui.burst(['随机抽查', '骑车也不能逃课', '后座有班主任', '下一句是啥来着'], 6); g.laugh += 6;
   }

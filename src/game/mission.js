@@ -1,7 +1,7 @@
 // 任务线：目的地光柱、地面箭头、导航目标、取餐 → 送咖啡 → 入夜 → 捧腹大笑 → 片尾，
 // 以及右边的人生任务列表和 HUD 小地图。全部从 game/game.js 原样搬出，逻辑一字未改。
 import * as THREE from 'three';
-import { QUESTS, ROUTE_AUNT, ROUTE_NIGHT } from '../data/quest-config.js';
+import { ROUTE_AUNT, ROUTE_NIGHT } from '../data/quest-config.js';
 import { LINES } from '../data/text.js';
 import { lerp, smooth } from '../core/math.js';
 import { nearestRoad } from './guide.js';
@@ -56,23 +56,18 @@ export function setRoute(game, r) {
  */
 export function updateQuests(game, dt) {
   const el = document.getElementById('quests');
-  const show = (game.state === 'roam' || game.state === 'free') && game.player.mode !== 'dive';
+  // 主重启循环期间隐藏旧版 13 行右侧长清单，仅在「自由闯荡」模式展示 8 大街区支线
+  const show = game.state === 'free' && game.player.mode !== 'dive';
   el.style.display = show ? '' : 'none';
   if (!show || (game.questT = (game.questT || 0) - dt) > 0) return;
   game.questT = 0.25;
-  const list = game.districtTrip ? [] : QUESTS.map((q) => ({ t: q.t, done: q.done(game) }));
   const side = game.districts.questItems();
-  if (side.length && !game.districtTrip) side[0].head = '街区任务';
-  list.push(...side);
   const next = game.districts.active?.d || game.districts.nearestQuest();
-  const mainIndex = game.districtTrip ? -1 : list.findIndex(q => !q.side && !q.done);
-  const cur = mainIndex >= 0 ? mainIndex : list.findIndex(q => q.id && q.id === next?.id);
+  const cur = side.findIndex((q) => q.id && q.id === next?.id);
   let note = '';
   const nav = game.navTarget();
-  if (nav) note = `还有 ${Math.round(Math.hypot(nav.pos.x - game.player.pos.x, nav.pos.z - game.player.pos.z))} 米 · 跟着黄线走`;
-  else if (game.phase === 'night') note = `笑点 ${Math.min(100, Math.round(game.laugh))}% · 撞东西涨得快`;
-  else if (game.phase === 'laughReady') note = '现在就按 Q！';
-  game.ui.quests(list, cur, note, game.districtTrip ? '街区任务' : '人生任务');
+  if (nav) note = `还有 ${Math.round(Math.hypot(nav.pos.x - game.player.pos.x, nav.pos.z - game.player.pos.z))} 米`;
+  game.ui.quests(side, cur, note, '街区支线任务');
 }
 
 /**
@@ -98,20 +93,25 @@ export function makeArrows(game, s) {
 export function updateArrows(game) {
   const A = game.arrows, r = game.navLine;
   if (!A) return;
-  if (!r || r.length < 2 || game.state !== 'roam' || game.player.mode === 'dive') { A.count = 0; return; }
+  if (!r || r.length < 2 || (game.state !== 'roam' && game.state !== 'free') || game.player.mode === 'dive') { A.count = 0; return; }
   const off = (game.time * 9) % 6;
   let seg = 0, segStart = 0, n = 0;
   const lens = []; let total = 0;
   for (let i = 0; i + 1 < r.length; i++) { const l = Math.hypot(r[i + 1][0] - r[i][0], r[i + 1][1] - r[i][1]); lens.push(l); total += l; }
+  const posV = (game._av ||= new THREE.Vector3());
+  const scV = (game._as ||= new THREE.Vector3(1.3, 1, 1.3));
+  const colV = (game._ac ||= new THREE.Color());
   for (let d = 5 + off; d < Math.min(total - 3, 88) && n < 14; d += 6) {
     while (seg < lens.length - 1 && d > segStart + lens[seg]) { segStart += lens[seg]; seg++; }
     const k = Math.min(1, (d - segStart) / Math.max(lens[seg], 1e-3)), a = r[seg], b = r[seg + 1];
     const x = a[0] + (b[0] - a[0]) * k, z = a[1] + (b[1] - a[1]) * k;
     game._q.setFromAxisAngle(game._up, Math.atan2(b[0] - a[0], b[1] - a[1]));
-    game._m4.compose(new THREE.Vector3(x, game.island.heightAt(x, z) + 0.15, z), game._q, new THREE.Vector3(1.3, 1, 1.3));
+    posV.set(x, game.island.heightAt(x, z) + 0.15, z);
+    game._m4.compose(posV, game._q, scV);
     A.setMatrixAt(n, game._m4);
     const f = Math.min(1, (d - 3) / 6) * (1 - d / 95);
-    A.setColorAt(n, new THREE.Color(2.4 * f, 1.6 * f, 0.35 * f)); n++;
+    colV.setRGB(2.4 * f, 1.6 * f, 0.35 * f);
+    A.setColorAt(n, colV); n++;
   }
   A.count = n; A.instanceMatrix.needsUpdate = true; if (A.instanceColor) A.instanceColor.needsUpdate = true;
 }
@@ -124,6 +124,7 @@ export function updateArrows(game) {
 export function navTarget(game) {
   const p = game.player, ph = game.phase;
   if (game.state === 'dive' || ((ph === 'getbike' || (game.state === 'roam' && !ph)) && p.mode !== 'bike')) return { pos: p.bike.position, label: '小电驴' };
+  if (ph === 'loop' && game.anchors) return game.anchors.navTarget();
   if (ph === 'pickup') return { pos: game.island.cafe, label: '咖啡店 · 取餐' };
   if (ph === 'deliver') return { pos: game.island.auntSpot, label: '七大姑 · 送咖啡' };
   return game.districts ? game.districts.navTarget() : null;
@@ -159,7 +160,7 @@ export function updateMission(game, dt) {
   const p = game.player;
   game.markerRing.rotation.z += dt;
   game.markerRing.scale.setScalar(1 + Math.sin(game.time * 4) * 0.08);
-  if (game.phase === 'getbike' && p.canMount()) game.ui.setHint('按 <b>E</b> 骑上小电驴');
+  if ((!game.phase || game.phase === 'getbike') && p.canMount()) game.ui.setHint('按 <b>E</b> 骑上小电驴');
   else if (game.phase !== 'laughReady') game.ui.setHint('');
   if (game.missionT != null && (game.phase === 'pickup' || game.phase === 'deliver')) {
     game.missionT -= dt; game.ui.setTimer(game.missionT);
@@ -330,9 +331,14 @@ export function finaleCam(game, dt) {
 export function updateHud(game) {
   const p = game.player;
   const marks = [];
-  if (game.marker.visible) marks.push({ x: game.marker.position.x, z: game.marker.position.z, color: '#ffc83a', r: 6, edge: true });
-  if (game.kanga.active) marks.push({ x: game.kanga.root.position.x, z: game.kanga.root.position.z, color: '#ff9a3a' });
-  for (const c of game.chasers) marks.push({ x: c.root.position.x, z: c.root.position.z, color: '#ff4a6a' });
+  const nav = game.navTarget();
+  if (nav) marks.push({ x: nav.pos.x, z: nav.pos.z, color: '#ffc83a', r: 6, edge: true });
+  else if (game.marker.visible) marks.push({ x: game.marker.position.x, z: game.marker.position.z, color: '#ffc83a', r: 6, edge: true });
+  if (game.kanga.active) marks.push({ x: game.kanga.root.position.x, z: game.kanga.root.position.z, color: '#ff9a3a', r: 5 });
+  for (const c of game.chasers) marks.push({ x: c.root.position.x, z: c.root.position.z, color: '#ff4a6a', r: 4 });
+  if (game.anchors) {
+    for (const gh of game.anchors.ghosts) marks.push({ x: gh.root.position.x, z: gh.root.position.z, color: '#55e8ff', r: 4 });
+  }
   if (p.mode !== 'bike') marks.push({ x: p.bike.position.x, z: p.bike.position.z, color: '#6fffd0', edge: true });
   game.ui.minimap(p.pos.x, p.pos.z, game.rig.yaw, marks, game.navLine);
 }

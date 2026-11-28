@@ -213,14 +213,22 @@ export class Audio {
     if (!queue) speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'zh-CN'; if (this.voice) u.voice = this.voice;
-    u.pitch = pitch; u.rate = rate; u.volume = 0.9;
+    u.pitch = this.coldMode ? 0.72 : pitch;
+    u.rate = this.coldMode ? 1.02 : rate;
+    u.volume = 0.85;
     speechSynthesis.speak(u);
+  }
+
+  /** 抵押「笑声与情绪」后切换到冰冷机房节拍。 */
+  setColdMode(on) {
+    this.coldMode = !!on;
+    this.setMusic(on ? 0.22 : 0.48);
   }
 
   /** 音乐总线音量（0..1，带 0.8 秒渐变）。 @param {number} v 音量 @returns {void} */
   setMusic(v) { if (this.ctx) this.musicBus.gain.setTargetAtTime(v, this.ctx.currentTime, 0.8); }
 
-  // 芯片音乐电台：简单的循环，低音加琶音
+  // 芯片音乐电台：简单的循环，低音加琶音（页面隐藏时暂停调度省 CPU）
   /** 启动芯片音乐电台：104 BPM，四小节和弦循环 + 琶音 + 旋律 + 噪声鼓。 @returns {void} */
   music() {
     const C = this.ctx, bpm = 104, step = 60 / bpm / 2;
@@ -234,16 +242,22 @@ export class Audio {
       o.connect(g); g.connect(this.musicBus); o.start(t); o.stop(t + dur + 0.02);
     };
     const tick = () => {
+      if (document.hidden || C.state !== 'running') { next = C.currentTime + 0.1; return; }
       while (next < C.currentTime + 0.3) {
-        const bar = Math.floor(n / 8) % 4, ch = prog[bar];
-        if (n % 2 === 0) note(ch[0] - 24, next, step * 1.8, 'triangle', 0.22);
-        note(ch[n % 3] + 12, next, step * 0.9, 'square', 0.035);
-        const m = mel[n % 16];
-        if (m > 0 && Math.floor(n / 16) % 2 === 1) note(m, next, step * 1.6, 'square', 0.05);
-        if (n % 4 === 2) { const s = C.createBufferSource(); s.buffer = this.noiseBuf; const g = C.createGain(); g.gain.setValueAtTime(0.06, next); g.gain.exponentialRampToValueAtTime(0.001, next + 0.08); s.connect(g); g.connect(this.musicBus); s.start(next); s.stop(next + 0.1); }
+        if (this.coldMode) {
+          // 抵押笑声后的冰冷机房滴答声
+          if (n % 2 === 0) note(n % 8 === 0 ? 45 : 57, next, 0.08, 'sine', 0.12);
+        } else {
+          const bar = Math.floor(n / 8) % 4, ch = prog[bar];
+          if (n % 2 === 0) note(ch[0] - 24, next, step * 1.8, 'triangle', 0.22);
+          note(ch[n % 3] + 12, next, step * 0.9, 'square', 0.035);
+          const m = mel[n % 16];
+          if (m > 0 && Math.floor(n / 16) % 2 === 1) note(m, next, step * 1.6, 'square', 0.05);
+          if (n % 4 === 2) { const s = C.createBufferSource(); s.buffer = this.noiseBuf; const g = C.createGain(); g.gain.setValueAtTime(0.06, next); g.gain.exponentialRampToValueAtTime(0.001, next + 0.08); s.connect(g); g.connect(this.musicBus); s.start(next); s.stop(next + 0.1); }
+        }
         next += step; n++;
       }
     };
-    setInterval(tick, 80);
+    setInterval(tick, 120);
   }
 }

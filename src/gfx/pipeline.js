@@ -12,30 +12,38 @@ import { Environment as EnvironmentClass } from './environment.js';
 // 变成无穷大；辉光一糊、色调映射一算就成了 NaN，画面会突然黑掉一大块。所以统一把粗糙度下限抬到 0.1
 THREE.ShaderChunk.roughnessmap_fragment += '\nroughnessFactor = max( roughnessFactor, 0.1 );';
 
+export const PERF_TIERS = {
+  eco: { label: '省电', maxPr: 0.85, bloom: false, shadows: false, fpsCap: 45 },
+  balanced: { label: '均衡', maxPr: 1.0, bloom: true, shadows: true, fpsCap: 60 },
+  high: { label: '高清', maxPr: 1.4, bloom: true, shadows: true, fpsCap: 60 },
+};
+
 /**
  * 渲染管线：WebGLRenderer + EffectComposer（RenderPass → Sanitize → Bloom → Output → Grade）。
- * 负责分辨率/像素比、镜头抖动，以及调色 uniforms 的每帧写入。
+ * 负责分辨率/像素比、性能档位（控制 CPU/GPU 占用）、镜头抖动，以及调色 uniforms 的每帧写入。
  */
 export class Pipeline {
   /** @param {HTMLCanvasElement} canvas 画布 */
   constructor(canvas) {
-    const r = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
-    r.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    r.setSize(innerWidth, innerHeight);
+    const r = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'default' });
     r.toneMapping = THREE.ACESFilmicToneMapping;
     r.toneMappingExposure = 1.0;
     r.outputColorSpace = THREE.SRGBColorSpace;
     r.shadowMap.enabled = true;
     r.shadowMap.type = THREE.PCFShadowMap;
+    r.shadowMap.autoUpdate = false;
+    r.shadowMap.needsUpdate = true;
     this.renderer = r;
     this.pmrem = new THREE.PMREMGenerator(r);
-    this.camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 6000);
+    this.camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.25, 4500);
     this.scene = null;
+    this.tier = 'balanced';
 
-    const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
+    // 取消 4x MSAA HalfFloat 离屏采样，改用低功耗 RT + 半分辨率辉光，显存带宽与 GPU 发热直降一半以上
+    const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 0 });
     this.composer = new EffectComposer(r, rt);
     this.renderPass = new RenderPass(null, this.camera);
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.4, 0.6, 1.35);
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(Math.max(1, innerWidth >> 1), Math.max(1, innerHeight >> 1)), 0.32, 0.55, 1.35);
     this.grade = new ShaderPass(GradeShader);
     this.composer.addPass(this.renderPass);
     this.composer.addPass(new ShaderPass(SanitizeShader));
@@ -43,29 +51,53 @@ export class Pipeline {
     this.composer.addPass(new OutputPass());
     this.composer.addPass(this.grade);
     this.shake = 0;
-    addEventListener('resize', () => this.resize());
+    this._resizeTimer = 0;
+    addEventListener('resize', () => {
+      clearTimeout(this._resizeTimer);
+      this._resizeTimer = setTimeout(() => this.resize(), 80);
+    });
     this.resize();
   }
 
-  /** 调色 shader 的 uniforms（uTime / uRes / uLow / uReveal / uPix / uSat / uVig / uGrain / uCA / uFlash / uLetter / uWarm）。 @returns {Record<string, {value: any}>} */
+  /** 切换性能档位：eco（省电）/ balanced（均衡，默认）/ high（高清）。 */
+  setTier(tier) {
+    if (!PERF_TIERS[tier]) return;
+    this.tier = tier;
+    const cfg = PERF_TIERS[tier];
+    this.bloom.enabled = cfg.bloom;
+    this.renderer.shadowMap.enabled = cfg.shadows;
+    this.renderer.shadowMap.needsUpdate = cfg.shadows;
+    this.resize();
+  }
+
+  /** 循环切换性能档位并返回新档位信息。 */
+  cycleTier() {
+    const order = ['balanced', 'eco', 'high'];
+    const next = order[(order.indexOf(this.tier) + 1) % order.length];
+    this.setTier(next);
+    return PERF_TIERS[next];
+  }
+
+  /** 调色 shader 的 uniforms（uTime / uRes / uLow / uReveal / uPix / uSat / uVig / uGrain / uCA / uFlash / uLetter / uWarm / uDesat / uGlitch）。 @returns {Record<string, {value: any}>} */
   get g() { return this.grade.uniforms; }
 
-  /** 按窗口大小重设像素比、渲染尺寸、相机宽高比与调色分辨率。 @returns {void} */
+  /** 按窗口大小与当前性能档位重设像素比、渲染尺寸、相机宽高比与调色分辨率。 @returns {void} */
   resize() {
     const w = innerWidth, h = innerHeight;
-    // 最多按约 1440p 的像素量渲染：4K 屏也能稳住帧率
-    const pr = Math.min(window.devicePixelRatio, 1.5, Math.sqrt((1920 * 1080) / (w * h)));
+    const cfg = PERF_TIERS[this.tier] || PERF_TIERS.balanced;
+    const pr = Math.min(window.devicePixelRatio || 1, cfg.maxPr, Math.sqrt((1600 * 900) / Math.max(1, w * h)));
     this.renderer.setPixelRatio(pr);
     this.renderer.setSize(w, h);
     this.composer.setPixelRatio(pr);
     this.composer.setSize(w, h);
+    this.bloom.setSize(Math.max(1, Math.floor((w * pr) / 2)), Math.max(1, Math.floor((h * pr) / 2)));
     this.camera.aspect = w / h; this.camera.updateProjectionMatrix();
     this.g.uRes.value.set(w * pr, h * pr);
     this.g.uPix.value = Math.max(2, (h * pr) / 360);
   }
 
   /** 换场景。 @param {THREE.Scene} scene 主场景 @returns {void} */
-  setScene(scene) { this.scene = scene; this.renderPass.scene = scene; }
+  setScene(scene) { this.scene = scene; this.renderPass.scene = scene; this.renderer.shadowMap.needsUpdate = true; }
 
   /**
    * 渲染一帧。
@@ -75,6 +107,8 @@ export class Pipeline {
    */
   render(dt, t) {
     this.g.uTime.value = t;
+    const cfg = PERF_TIERS[this.tier] || PERF_TIERS.balanced;
+    this.bloom.enabled = cfg.bloom && this.bloom.strength > 0.02;
     if (this.shake > 0) {
       this.shake = Math.max(0, this.shake - dt * 2.5);
       const s = this.shake * this.shake * 0.6;

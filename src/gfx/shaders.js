@@ -26,31 +26,46 @@ export const GradeShader = {
   uniforms: {
     tDiffuse: { value: null }, uTime: { value: 0 }, uRes: { value: new THREE.Vector2(1, 1) },
     uLow: { value: 0 }, uReveal: { value: 0 }, uPix: { value: 3 }, uSat: { value: 1.08 },
-    uVig: { value: 0.55 }, uGrain: { value: 0.013 }, uCA: { value: 0.075 }, uFlash: { value: 0 },
-    uLetter: { value: 0 }, uWarm: { value: 1 },
+    uVig: { value: 0.55 }, uGrain: { value: 0.011 }, uCA: { value: 0.075 }, uFlash: { value: 0 },
+    uLetter: { value: 0 }, uWarm: { value: 1 }, uDesat: { value: 0 }, uGlitch: { value: 0 },
   },
   vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
   fragmentShader: `
-    uniform sampler2D tDiffuse; uniform float uTime, uLow, uReveal, uPix, uSat, uVig, uGrain, uCA, uFlash, uLetter, uWarm;
+    uniform sampler2D tDiffuse; uniform float uTime, uLow, uReveal, uPix, uSat, uVig, uGrain, uCA, uFlash, uLetter, uWarm, uDesat, uGlitch;
     uniform vec2 uRes; varying vec2 vUv;
     void main(){
       vec2 uv = vUv; vec2 c = uv - 0.5;
+      if (uGlitch > 0.01) {
+        float band = floor(uv.y * 28.0 + uTime * 24.0);
+        float shift = (fract(sin(band * 127.1) * 43758.5453) - 0.5) * 0.032 * uGlitch;
+        uv.x = clamp(uv.x + shift, 0.0, 1.0);
+      }
       float d = length(c * vec2(uRes.x / uRes.y, 1.0));
       float low = uLow * smoothstep(uReveal - 0.04, uReveal + 0.04, d);
       vec2 puv = uv;
       if (low > 0.5) { vec2 g = uRes / uPix; puv = (floor(uv * g) + 0.5) / g; }
-      vec2 dir = c * uCA * 0.012 * (1.0 + low * 2.0);
+      vec2 dir = c * (uCA + uGlitch * 0.65) * 0.012 * (1.0 + low * 2.0);
       vec3 col = vec3(texture2D(tDiffuse, puv + dir).r, texture2D(tDiffuse, puv).g, texture2D(tDiffuse, puv - dir).b);
       float l = dot(col, vec3(0.299, 0.587, 0.114));
       col = mix(vec3(l), col, uSat);
       col = (col - 0.45) * 1.1 + 0.45;
       // 青橙分离：亮部偏暖，暗部偏青
-      col += vec3(0.06, 0.025, -0.02) * smoothstep(0.35, 1.0, l) * uWarm;
+      float warm = uWarm * (1.0 - uDesat * 0.9);
+      col += vec3(0.06, 0.025, -0.02) * smoothstep(0.35, 1.0, l) * warm;
       col += vec3(-0.015, 0.008, 0.03) * (1.0 - smoothstep(0.0, 0.35, l));
+      // 抵押「色彩与天气」后的冰冷算力灰蓝视图 + 极细扫描线
+      if (uDesat > 0.01) {
+        vec3 cold = vec3(l * 0.86, l * 0.95 + 0.02, l * 1.08 + 0.05);
+        float scan = 0.96 + 0.04 * sin(uv.y * uRes.y * 0.8);
+        col = mix(col, cold * scan, uDesat);
+      }
       // 360P 灰盒
       col = mix(col, vec3(l * 0.85 + 0.06), low * 0.95);
       float edge = smoothstep(0.05, 0.0, abs(d - uReveal)) * step(0.01, uLow);
       col += vec3(0.35, 0.95, 1.0) * edge * 0.9;
+      if (uGlitch > 0.01) {
+        col += vec3(0.15, 0.85, 1.0) * uGlitch * 0.28 * step(0.82, fract(uv.y * 19.0 + uTime * 11.0));
+      }
       col *= mix(1.0, 1.0 - smoothstep(0.35, 1.05, d) * 0.85, uVig);
       float n = fract(sin(dot(uv * uRes + fract(uTime) * 91.0, vec2(12.9898, 78.233))) * 43758.5453);
       col += (n - 0.5) * uGrain;

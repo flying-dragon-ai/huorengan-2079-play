@@ -3,7 +3,9 @@ import * as THREE from 'three';
 import { getModel, hasModel, MODEL_CONF } from '../models.js';
 import { angleDamp, clamp } from '../../core/util.js';
 import { MEMES, MEME3D, MEME_SPOTS, CHOIR, ROAD_MEME } from '../../data/text.js';
+import { AI_CUSTODIAN_LINES } from '../../data/reboot-config.js';
 import { Cardboard } from './cardboard.js';
+import { createCustodianMesh } from './ghost.js';
 
 // 3D 热梗路人：整个模型摆动（不用骨骼），靠近会叫、会做动作，被撞飞会喊
 /**
@@ -119,6 +121,33 @@ export class Peds {
     }
     for (const c of this.choir) c.yaw = 0; // 合唱团面朝马路
     this.squad = []; this.stack = []; this.t = 0; this.choirT = -99; this.stackT = 0;
+    this.custodianMode = false;
+  }
+
+  /**
+   * 抵押「人情与羁绊」模式：把满街热梗路人替换成统一蓝衣 AI 标准客服；夺回后立刻恢复原样！
+   * @param {boolean} on
+   */
+  setCustodianMode(on) {
+    if (this.custodianMode === on) return;
+    this.custodianMode = on;
+    if (on) {
+      this.stack = [];
+      for (const c of this.squad) c.follow = -1;
+      this.squad = [];
+    }
+    for (const c of this.list) {
+      c.stack = -1;
+      if (on && !c._custodian) {
+        c._origChildren = c.root.children.slice();
+        c._custodian = createCustodianMesh();
+        c.root.add(c._custodian);
+      }
+      if (c._origChildren) {
+        for (const ch of c._origChildren) ch.visible = !on;
+      }
+      if (c._custodian) c._custodian.visible = on;
+    }
   }
 
   // 叠罗汉：骑车撞上去，它弹起来叠到电驴上
@@ -200,10 +229,28 @@ export class Peds {
       if (player.mode !== 'bike' || player.pancakeT > 0) this.fling(player, ui, audio, player.pancakeT > 0 ? '撞墙了全飞了' : '下车了全飞了');
       else if (this.stackT > 2 && (player.lateral || 0) > 26) this.fling(player, ui, audio, '转弯太急了！！');
     }
-    // 合唱团：奶蛙骑过来就开唱
-    if (this.choir.length > 1 && this.t - this.choirT > 30) {
+    // 合唱团：奶蛙骑过来就开唱（抵押人情后安静如死）
+    if (!this.custodianMode && this.choir.length > 1 && this.t - this.choirT > 30) {
       const c0 = this.choir[2] || this.choir[0];
       if (c0.root.position.distanceTo(player.pos) < 26) this.sing(audio, ui);
+    }
+    if (this.custodianMode) {
+      // 蓝衣 AI 客服模式：立正站好、偶尔弹出冰冷礼貌的客服话术，不再互动/叠罗汉/招募
+      for (const c of this.list) {
+        c.tickBubble(dt);
+        c.cool = (c.cool || 0) - dt;
+        const dp = c.root.position.distanceTo(player.pos);
+        if (dp < 12) {
+          c.yaw = angleDamp(c.yaw, Math.atan2(player.pos.x - c.root.position.x, player.pos.z - c.root.position.z), 4, dt);
+          c.root.rotation.set(0, c.yaw, 0);
+          if (c.cool <= 0 && this.t - (this.lastEmote || -9) > 3.8) {
+            c.cool = 14;
+            this.lastEmote = this.t;
+            c.say(AI_CUSTODIAN_LINES[Math.floor(Math.random() * AI_CUSTODIAN_LINES.length)]);
+          }
+        }
+      }
+      return;
     }
     let stackY = 0;
     for (const c of this.list) {

@@ -18,7 +18,11 @@ const V = (x, z) => new THREE.Vector3(x, 0, z);
  * @returns {void}
  */
 export function updateWanted(game, dt) {
-  if (game.phase !== 'deliver') return;
+  if (game.reboot?.isMortgaged('bond')) {
+    if (game.chasers.length) clearChasers(game);
+    return;
+  }
+  if (game.phase !== 'deliver' && game.phase !== 'loop') return;
   const p = game.player;
   const want = STAR_AT.filter((s) => p.chaos >= s).length;
   while (game.stars < want) {
@@ -30,7 +34,20 @@ export function updateWanted(game, dt) {
     game.audio.tone('square', 880, 440, 0.4, 0.15);
     game.ui.danmaku(`被催 ${game.stars} 星：${['妈妈', '班主任', '七大姑八大姨'][game.stars - 1]}出动`, true);
   }
-  for (const c of game.chasers) c.update(dt, p, game.island);
+  for (const c of game.chasers) {
+    c.update(dt, p, game.island);
+    c.nagCool = Math.max(0, (c.nagCool || 0) - dt);
+    if (game.phase === 'loop' && !c.flying && c.nagCool <= 0 && c.root.position.distanceTo(p.pos) < 2.2) {
+      c.nagCool = 4.5;
+      if (game.anchors) game.anchors.timeLeft = Math.max(1, game.anchors.timeLeft - 3);
+      p.speed *= 0.45;
+      game.pipe.shake = 0.45;
+      game.audio.crash();
+      const q = c.lines[Math.floor(Math.random() * c.lines.length)];
+      c.say(q);
+      game.ui.danmaku(`被亲戚拦住问「${q}」耗时 -3s！`, true);
+    }
+  }
   const lost = game.chasers.find((c) => c.lost > 5);
   if (lost) {
     lost.remove(); game.chasers = game.chasers.filter((c) => c !== lost);

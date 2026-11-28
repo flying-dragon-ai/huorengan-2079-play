@@ -16,6 +16,8 @@ export function buildBeach(island) {
     const rr = 180 + island.r() * (e - 230);
     const x = Math.cos(a) * rr, z = Math.sin(a) * rr;
     if (Math.max(Math.abs(x), Math.abs(z)) < 176 || island.inRoad(x, z, 3)) continue;
+    // 冰岛温泉雪原（北侧 x∈[-55,55], z<-148）绝不种热带棕榈
+    if (x > -55 && x < 55 && z < -148) continue;
     pts.push([x, z]);
   }
   for (let x = -140; x <= 140; x += 18) pts.push([x + island.r() * 4, BEACH_Z + 12 + island.r() * 4]);

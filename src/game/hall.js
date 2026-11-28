@@ -41,13 +41,13 @@ export class Hall {
     // 灯带
     const strip = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.3, 2.2, 3.2) });
     for (const x of [-4, 4]) { const m = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.05, 300), strip); m.position.set(x, 0.03, -150); s.add(m); }
-    const ceil = new THREE.MeshBasicMaterial({ color: new THREE.Color(2.2, 2.6, 3.0) });
-    // 环形顶灯与舱位编号灯，沿走廊延伸到雾里
+    const ceil = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.55, 0.82, 1.05) });
+    // 环形顶灯与舱位编号灯，沿走廊延伸到雾里（压低亮度避免把标题字冲白）
     this.hallRings = [];
-    for (let z = -2; z > -300; z -= 10) {
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(8.6, 0.095, 8, 64), ceil);
+    for (let z = -2; z > -300; z -= 14) {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(8.6, 0.08, 8, 48), ceil);
       ring.position.set(0, 7.3, z); s.add(ring); this.hallRings.push(ring);
-      const m = new THREE.Mesh(new THREE.BoxGeometry(6, 0.1, 1.2), ceil); m.position.set(0, 11, z); s.add(m);
+      const m = new THREE.Mesh(new THREE.BoxGeometry(5.5, 0.08, 1.0), ceil); m.position.set(0, 11, z); s.add(m);
     }
     const aisleGlow = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.6, 0.25, 1.5), transparent: true, opacity: 0.5 });
     for (const x of [-17.3, 17.3]) {
@@ -104,11 +104,44 @@ export class Hall {
     fish.position.set(4.6, 3.0, 3.5); fish.rotation.y = -Math.PI / 2 + 0.5; fish.scale.setScalar(0.8);
     s.add(fish);
 
-    this.t = 0; this.talking = 0; this.leave = 0;
+    this.t = 0; this.talking = 0; this.leave = 0; this.custodian = false;
+    // 伪结局「完美的空壳」用：奶蛙头顶的客服蓝光环
+    this.heroHalo = new THREE.Mesh(
+      new THREE.TorusGeometry(0.65, 0.055, 8, 32),
+      new THREE.MeshBasicMaterial({ color: new THREE.Color(0.3, 2.4, 3.6) }),
+    );
+    this.heroHalo.rotation.x = Math.PI / 2;
+    this.heroHalo.position.set(0, 2.05, 0);
+    this.heroHalo.visible = false;
+    this.hero.add(this.heroHalo);
+  }
+
+  /** 重置大厅主角状态（重启协议或结局演出用）。 */
+  resetHero(custodian = false) {
+    this.leave = 0;
+    this.custodian = custodian;
+    this.heroHalo.visible = custodian;
+    if (custodian) {
+      this.hero.position.set(-2.4, 2.9, 3.6);
+      this.hero.rotation.y = Math.PI - 0.35;
+      this.hero.scale.setScalar(1.2);
+    } else {
+      this.hero.position.set(0, 0.4, 6);
+      this.hero.rotation.y = Math.PI;
+      this.hero.scale.setScalar(1.2);
+    }
   }
 
   // 镜头：从远处高空沿走廊飞到主角面前
   camera(cam, t) {
+    if (this.custodian) {
+      const k = smooth(0, 6, t);
+      cam.position.set(lerp(0.8, 0.2, k), lerp(2.8, 4.4, k), lerp(-2.5, -14, k));
+      cam.lookAt(0.8, 3.0, 4.0);
+      cam.fov = lerp(42, 52, k);
+      cam.updateProjectionMatrix();
+      return;
+    }
     const k = smooth(0, 16, t);
     const z = lerp(-190, -2.5, k), y = lerp(16, 2.4, smooth(0, 14, t));
     const x = Math.sin(t * 0.35) * lerp(2.5, 0.4, k) + lerp(0, 1.0, k);
@@ -125,7 +158,12 @@ export class Hall {
     const talk = this.talking > 0 ? Math.abs(Math.sin(t * 14)) : 0;
     this.mouth.scale.set(1, 1 + talk * 1.2, 1);
     this.talking -= dt;
-    this.hero.scale.y = 1.2 * (1 + Math.sin(t * 2) * 0.02);
+    if (this.custodian) {
+      this.hero.position.y = 2.9 + Math.sin(t * 1.8 + 1) * 0.22;
+      this.heroHalo.rotation.z = t * 1.6;
+    } else {
+      this.hero.scale.y = 1.2 * (1 + Math.sin(t * 2) * 0.02);
+    }
     this.ring.material.color.setRGB(0.2, 1.4 + Math.sin(t * 4) * 0.4, 2.0);
     if (this.leave > 0) {
       this.leave += dt;

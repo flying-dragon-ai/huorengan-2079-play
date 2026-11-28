@@ -3,8 +3,6 @@
 import * as THREE from 'three';
 import { getModel } from '../actors/models.js';
 import { angleDamp } from '../core/math.js';
-import { LINES } from '../data/text.js';
-import { ROUTE_CAFE } from '../data/quest-config.js';
 
 /** 平面坐标转世界坐标点（与 data/quest-config.js 里的同名工具一致）。
  * @param {number} x
@@ -110,20 +108,18 @@ export function updateBigFrog(game, dt) {
  * @returns {void}
  */
 export function onMount(game) {
-  // 落地后马上就骑上也算（那时 phase 还没设成 getbike）
+  // 落地后骑上小电驴：画质瞬间恢复，直接进入「第 N 世 · 重启的代价」150 秒逃生循环！
   if (game.phase === 'getbike' || (game.state === 'roam' && !game.phase)) {
     game.setMarker(null);
     game.upgrade();
     game.mounted = true;
-    game.tl.at(0.6, () => game.ui.banner('画质恢复！', '活人感 +20%'));
-    game.phase = 'order';
-    game.ui.objective('');
-    game.tl.at(4, () => {
-      game.audio.ding(); game.ui.phoneMsg('妈妈', '外卖单：一杯八十的咖啡 → 海边七大姑');
-      game.line(LINES.orderIn, 5);
-      game.phase = 'pickup'; game.ui.objective('去魔都弄堂咖啡店取餐（西方明珠塔下）');
-      game.setMarker(game.island.cafe); game.missionT = 150; game.missionStart = game.time;
-      game.setRoute(ROUTE_CAFE);
+    game.phase = 'loop';
+    game.ui.setAnchorCardVisible(true);
+    game.anchors.startLoop(true);
+    game.tl.at(0.6, () => game.ui.banner(`第 ${game.reboot.loop} 世 · 逃生开始`, '150 秒内集齐 3 枚活人锚点，回中央广场拉闸！'));
+    game.tl.at(1.2, () => {
+      game.audio.ding();
+      game.line(['大肥鱼 AI 客服', '倒计时已启动！去魔都查维护码、去老家答早读题、半路截胡偷锚点的袋鼠！'], 5.5);
     });
   }
 }

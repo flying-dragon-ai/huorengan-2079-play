@@ -365,8 +365,7 @@ export function plazaBuildings(island) {
   label('任务中心', -29.8, 6, 15, Math.PI / 2, 8, '#ffd84a');
   island.col.add(-42, -30, 8, 22, 9);
 
-  // C02 AI 生成中（西南角）：全息方块加围挡
-  island.holoMini(-34, 34, 16);
+  // C02 与 C01 原「AI 生成中 2080」围挡已移除（8 个街区全部完工，空间留给算力总闸与回收站）
 
   // B04 咖啡塔楼（东北）：一层层叠起来的圆塔，48 米
   const pink = M(0xf3d6e4), tiers = [[9, 9], [7.5, 8], [6, 8], [4.5, 7], [3, 6]];
@@ -383,8 +382,7 @@ export function plazaBuildings(island) {
   label('咖啡街 · 一杯八十', 27.5, 7, -27.5, -Math.PI / 4, 10, '#ff8ad8');
   island.col.add(25, 43, -43, -25, 50);
 
-  // C01 AI 生成中（北侧偏东，塔楼旁边）
-  island.holoMini(14, -36, 10);
+  // C01 留白给北侧通道与算力回收站
 
   // B05 载具租赁（东侧）：顶棚下停一排电驴、三轮、购物车（都是摆设）
   box(40.5, 42, 8, 22, 0, 5, M(0x647982));

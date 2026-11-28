@@ -78,7 +78,7 @@ export class Tokyo {
     this.trainMoving = !(k >= 9 && k < 15) && k < 34;
     this.train.position.x = x; this.train.visible = x < 172;
     this.atStation = k >= 9 && k < 15;
-    if (this.petals) this.animatePetals(dt);
+    if (this.petals && this.petals.visible) this.animatePetals(dt);
   }
 
   // 便利店「家里玛特」：白底三色条，门口一个巨大的甜筒
@@ -230,8 +230,10 @@ export class Tokyo {
     I.ctxPlayerX = p.pos.x;
     if (inside) this.gags.update(g, p);
     const near = p.pos.x > 20 && p.pos.x < 180 && p.pos.z > -180 && p.pos.z < -20;
-    this.rain.visible = near;
-    if (near) this.updateRain(dt, p.pos);
+    const cold = (g.env?.coldMode || 0) > 0.5;
+    this.rain.visible = near && !cold;
+    if (this.petals) this.petals.visible = near && !cold;
+    if (this.rain.visible) this.updateRain(dt, p.pos);
     if (this.catPaw) this.catPaw.position.y = 7.2 + Math.sin(g.time * 5) * 0.25;
     for (let i = this.extras.length - 1; i >= 0; i--) {
       const e = this.extras[i]; e.t -= dt;

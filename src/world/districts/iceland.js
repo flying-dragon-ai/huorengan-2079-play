@@ -240,21 +240,24 @@ export class Iceland {
 
   update(g, dt, inside) {
     const t = g.time;
-    for(const a of this.auroras) {
+    const near = Math.hypot(g.player.pos.x, g.player.pos.z + 187) < 115;
+    const cold = (g.env?.coldMode || 0) > 0.5;
+    for (const a of this.auroras) {
+      a.mesh.visible = near && !cold;
+      if (!a.mesh.visible) continue;
       const p = a.mesh.geometry.attributes.position;
-      const near=Math.hypot(g.player.pos.x,g.player.pos.z+187)<115;
-      a.mesh.visible=near;
-      for (let i = 0; i <= a.n; i++) for(let j=0;j<=a.rows;j++) {
-        const u=i/a.n, v=j/a.rows, x=-43+u*86;
-        const wave=Math.sin(u*9+t*.38+a.k*1.7);
-        const z=-213+a.k*6+Math.sin(u*7+t*.22+a.k)*4;
-        const y=22+a.k*3+Math.sin(u*8+t*.35)*2;
-        const q=i*(a.rows+1)+j;
-        p.setXYZ(q,x,y+v*8+wave*(1.1+v*2.6),z+v*1.6+Math.sin(v*3+u*17+t*.4)*.2);
+      for (let i = 0; i <= a.n; i++) for (let j = 0; j <= a.rows; j++) {
+        const u = i / a.n, v = j / a.rows, x = -43 + u * 86;
+        const wave = Math.sin(u * 9 + t * .38 + a.k * 1.7);
+        const z = -213 + a.k * 6 + Math.sin(u * 7 + t * .22 + a.k) * 4;
+        const y = 22 + a.k * 3 + Math.sin(u * 8 + t * .35) * 2;
+        const q = i * (a.rows + 1) + j;
+        p.setXYZ(q, x, y + v * 8 + wave * (1.1 + v * 2.6), z + v * 1.6 + Math.sin(v * 3 + u * 17 + t * .4) * .2);
       }
       p.needsUpdate = true;
       a.mesh.material.opacity = 0.22 + Math.sin(t * 0.5 + a.k) * 0.04;
     }
+    if (!near) return;
     if (this.water) {
       this.water.material.roughness = .39 + Math.sin(t * 1.7) * .035;
       for (const s of this.steam) {

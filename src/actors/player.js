@@ -38,6 +38,7 @@ export class Player {
     this.phase = 0; this.flip = 0; this.lean = 0;
     this.splatT = 0; this.chaos = 0; this.events = [];
     this.lastGround = 0;
+    this.noPainMode = false; // 抵押「痛觉与荒诞」：极速稳驾、撞墙不减速不摔饼
     this.initAnimation();
   }
 
@@ -274,13 +275,14 @@ export class Player {
       const [ax, ay] = input.axis();
       thr = ay; steer = -ax; boost = input.down('ShiftLeft') || input.down('ShiftRight');
     }
-    const top = boost ? 30 : v && v.target ? 21 : 24;
-    if (thr > 0) this.speed += (this.speed < top ? 15 : -8) * thr * dt;
-    else if (thr < 0) this.speed += (this.speed > 0 ? -28 : -10) * -thr * dt;
-    else this.speed = damp(this.speed, 0, 0.8, dt);
+    const speedMul = this.noPainMode ? 1.35 : 1;
+    const top = (boost ? 30 : v && v.target ? 21 : 24) * speedMul;
+    if (thr > 0) this.speed += (this.speed < top ? 18 * speedMul : -8) * thr * dt;
+    else if (thr < 0) this.speed += (this.speed > 0 ? -30 : -11) * -thr * dt;
+    else this.speed = damp(this.speed, 0, this.noPainMode ? 2.4 : 0.8, dt);
     this.speed = clamp(this.speed, -7, top);
     const grip = this.air ? 0.25 : 1;
-    const turn = steer * clamp(Math.abs(this.speed) / 5, 0, 1) * lerp(2.3, 1.35, clamp(this.speed / 28, 0, 1)) * grip;
+    const turn = steer * clamp(Math.abs(this.speed) / 5, 0, 1) * lerp(2.5, this.noPainMode ? 1.85 : 1.4, clamp(this.speed / 28, 0, 1)) * grip;
     this.yaw += turn * dt * Math.sign(this.speed || 1);
     // 侧向加速度：转弯太急，叠在车上的梗角色会被甩飞
     this.lateral = damp(this.lateral || 0, Math.abs(turn * this.speed), 8, dt);
@@ -311,7 +313,10 @@ export class Player {
     const hit = this.world.col.resolve(this.pos, 0.8, this.pos.y);
     if (hit) {
       const into = -(hit.x * h.x + hit.y * h.z);
-      if (into > 0.5 && Math.abs(this.speed) > 9) {
+      if (this.noPainMode) {
+        // 抵押痛觉后：无痛擦墙滑行，绝不摔成饼、几乎不减速
+        this.speed *= 1 - Math.max(0, into) * 0.06;
+      } else if (into > 0.5 && Math.abs(this.speed) > 9) {
         this.audio.crash(); this.sq = 0.5; this.emit('crash');
         // 撞得狠：奶蛙在车上摔成一张饼，停 0.8 秒再弹回来
         if (Math.abs(this.speed) > 14) { this.pancakeT = 0.8; this.audio.splat(); this.emit('pancake'); }

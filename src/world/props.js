@@ -311,6 +311,7 @@ export function addProp(island, obj, x, z, ry, radius, mass) {
  * @returns {number} 本次新撞飞的道具个数
  */
 export function hitProps(island, pos, radius, vel, power = 1) {
+  if (island.propsWelded) return 0; // 抵押「痛觉与荒诞」后，摊位焊死无法撞飞
   let n = 0;
   const sp = Math.hypot(vel.x, vel.z);
   for (const p of island.props) {
@@ -390,7 +391,10 @@ export function updateScenery(island, dt, t) {
   }
   if (island.questIcon) { island.questIcon.rotation.y += dt * 2; island.questIcon.position.y = 13.5 + Math.sin(t * 2.5) * 0.4; }
   island.animateSpray(t);
-  if (island.screen && (island.screen.t -= dt) <= 0) { island.screen.t = 0.12; island.drawScreen(t); }
+  if (island.screen && (island.screen.t -= dt) <= 0) {
+    island.screen.t = 0.35;
+    if (!island.playerPos || Math.hypot(island.playerPos.x, island.playerPos.z) < 120) island.drawScreen(t);
+  }
   if (island.holo) for (const h of island.holo) {
     const s = 0.85 + 0.15 * Math.sin(t * 1.5 + h.phase);
     h.l.material.opacity = 0.4 + 0.5 * Math.abs(Math.sin(t * 2 + h.phase));
