@@ -8,7 +8,7 @@
   - 与两份单文件同一次构建，差在模型走 `assets/models/*.glb` 而不是代码生成的替身
   - 直接在浏览器打开需要经 HTTP 提供（模块 + GLB 请求），Pages 上开箱可用
 
-构建溯源：源码仓私有仓库 `flying-dragon-ai/huorengan-2079` 的 `d2a9645ff8035716b4a078d5bf267ee655a4cf48`，同步于 2026-11-28 03:16:54 UTC。
+构建溯源：源码仓私有仓库 `flying-dragon-ai/huorengan-2079` 的 `fa9422890a0d0f3dce5837407e1a410eecce14e8`，同步于 2026-11-28 03:21:01 UTC。
 由 `scripts/sync-play.mjs` 在源码仓 CI 发布流程里自动生成，**不要手改本仓**——下次发布会整份覆盖。
 
 > 素材授权尚未逐项核实，本页面仅供试玩。
