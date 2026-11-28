@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { Pipeline, Environment } from '../gfx/pipeline.js';
 import { Particles, Shockwaves } from '../gfx/fx.js';
+import { batchStatic } from '../gfx/batch.js';
 import { Island } from '../world/island.js';
 import { Player, CameraRig } from '../actors/player.js';
 import { Kangaroo, Niulai, Peds } from '../actors/npc/index.js';
@@ -81,6 +82,9 @@ export class Game {
     document.getElementById('help').addEventListener('click', () => this.toggleHelp());
     if (hasModel('bigfrog')) this.makeBigFrog(s);
     this.views = bindPhotoControls(this);
+    // 静态批处理：只把「除了父子链没人引用」的不透明网格按材质合并，
+    // 画面不变、draw call 大幅减少。?batch=0 关掉做 A/B 对照。
+    if (this.params.get('batch') !== '0') this.batch = batchStatic(this.world, { owners: [this], structural: [this.island.root] });
     await stage('准备灯光和材质…', .88);
     // 预编译着色器，避免切场景时卡顿
     // 精细主角蒙皮在首次镜头前编译即可，不在loading末尾为全岛每个视角强制编译

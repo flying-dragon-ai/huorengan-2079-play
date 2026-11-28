@@ -8,6 +8,7 @@ import { quadGeo, M4, instanced } from './colliders.js';
 import { groundH } from './terrain.js';
 import { globeMaps } from './districts/plaza.js';
 import { getModel } from '../actors/models.js';
+import { batchRigid } from '../gfx/batch.js';
 
 /**
  * 发光地球仪：大陆用噪声画，经纬线发光；外面两圈金环慢慢转。
@@ -292,6 +293,8 @@ export function buildStreetLife(island) {
 export function addProp(island, obj, x, z, ry, radius, mass) {
   obj.position.set(x, island.heightAt(x, z), z); obj.rotation.y = ry;
   obj.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
+  // 刚体零件合并：撞飞只动 obj 本身，零件相对变换不变，合成一块能省掉一堆 draw call
+  batchRigid(obj);
   island.add(obj);
   const p = { obj, radius, mass, vel: new THREE.Vector3(), spin: new THREE.Vector3(), flying: false, home: new THREE.Vector3(x, 0, z) };
   island.props.push(p);
